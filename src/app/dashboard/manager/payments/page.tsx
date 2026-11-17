@@ -1,46 +1,90 @@
 "use client";
 
+import { CreditCard } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { DataTableSkeleton } from "@/components/layout/DataTableSkeleton";
 import { useApi } from "@/hooks/use-api";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
-const COLORS = ['#2563eb', '#16a34a', '#f59e0b', '#9333ea', '#ec4899'];
+import { CHART_COLORS } from "@/lib/chart-colors";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 export default function PaymentAnalysis() {
   const { data, loading } = useApi("/api/manager/payments");
 
   if (loading) {
-    return <div className="p-6">Loading payment data...</div>;
+    return (
+      <PageShell>
+        <PageHeader title="Payment analysis" />
+        <DataTableSkeleton rows={4} cols={2} />
+        <DataTableSkeleton rows={5} cols={6} />
+      </PageShell>
+    );
   }
 
+  const methods = data?.paymentsByMethod ?? [];
+  const recent = data?.recentPayments ?? [];
+
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Payment Analysis</h1>
+    <PageShell>
+      <PageHeader
+        title="Payment analysis"
+        description="Payment methods and recent transactions."
+      />
 
       <Card>
-        <CardHeader>
-          <CardTitle>Payments by Method</CardTitle>
+        <CardHeader className="border-b">
+          <CardTitle>Payments by method</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              {data?.paymentsByMethod?.map((method, i) => (
-                <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <div>
-                    <Badge variant="outline">{method.payment_method}</Badge>
-                    <p className="text-sm text-gray-500 mt-1">{method.count} transactions</p>
+          {methods.length === 0 ? (
+            <EmptyState
+              title="No payment methods"
+              description="Payment method breakdown will appear when payments are recorded."
+              icon={<CreditCard className="size-5" />}
+              className="border-0 bg-transparent py-8"
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-3">
+                {methods.map((method, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3"
+                  >
+                    <div>
+                      <Badge variant="outline">{method.payment_method}</Badge>
+                      <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+                        {method.count} transactions
+                      </p>
+                    </div>
+                    <p className="text-lg font-semibold tabular-nums">
+                      Rs. {parseFloat(method.total_amount).toFixed(2)}
+                    </p>
                   </div>
-                  <p className="text-lg font-bold">Rs. {parseFloat(method.total_amount).toFixed(2)}</p>
-                </div>
-              ))}
-            </div>
-            {data?.paymentsByMethod && data.paymentsByMethod.length > 0 && (
+                ))}
+              </div>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
-                    data={data.paymentsByMethod}
+                    data={methods}
                     dataKey="total_amount"
                     nameKey="payment_method"
                     cx="50%"
@@ -48,67 +92,82 @@ export default function PaymentAnalysis() {
                     outerRadius={80}
                     label
                   >
-                    {data.paymentsByMethod.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {methods.map((_, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
-            )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Payments</CardTitle>
+        <CardHeader className="border-b">
+          <CardTitle>Recent payments</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Meter</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Reference</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data?.recentPayments?.map((payment, i) => (
-                <TableRow key={i}>
-                  <TableCell>
-                    {payment.payment_date
-                      ? new Date(payment.payment_date).toLocaleDateString()
-                      : 'N/A'}
-                  </TableCell>
-                  <TableCell className="font-medium">{payment.customer_name}</TableCell>
-                  <TableCell>{payment.meter_number}</TableCell>
-                  <TableCell className="font-semibold text-green-600">
-                    Rs. {parseFloat(payment.amount).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{payment.payment_method}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {payment.reference_number || '-'}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(!data?.recentPayments || data.recentPayments.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-gray-500">
-                    No payments found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <CardContent className="p-0">
+          {recent.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No payments found"
+                description="Recent payments will appear here."
+                icon={<CreditCard className="size-5" />}
+                className="border-0 bg-transparent py-8"
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Meter</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Reference</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recent.map((payment, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="tabular-nums">
+                        {payment.payment_date
+                          ? new Date(payment.payment_date).toLocaleDateString()
+                          : "N/A"}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {payment.customer_name}
+                      </TableCell>
+                      <TableCell className="tabular-nums">
+                        {payment.meter_number}
+                      </TableCell>
+                      <TableCell className="font-semibold tabular-nums text-success">
+                        Rs. {parseFloat(payment.amount).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {payment.payment_method}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {payment.reference_number || "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

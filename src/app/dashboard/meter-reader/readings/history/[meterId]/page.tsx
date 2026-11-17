@@ -8,9 +8,17 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { DataTableSkeleton } from "@/components/layout/DataTableSkeleton";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { History } from "lucide-react";
 
 export default function ReadingHistoryPage() {
   const { meterId } = useParams();
@@ -20,8 +28,8 @@ export default function ReadingHistoryPage() {
 
   useEffect(() => {
     fetch(`/api/meter-reader/readings/history/${meterId}`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.error) {
           setError(data.error);
         } else {
@@ -35,46 +43,83 @@ export default function ReadingHistoryPage() {
       });
   }, [meterId]);
 
-  if (loading) {
-    return <p className="p-6">Loading history...</p>;
-  }
-  
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Reading History</h1>
+    <PageShell>
+      <PageHeader
+        title="Reading history"
+        description="Past readings recorded for this meter"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/meter-reader">Back</Link>
+            </Button>
+            <Button asChild>
+              <Link href={`/dashboard/meter-reader/readings/${meterId}`}>
+                Add reading
+              </Link>
+            </Button>
+          </div>
+        }
+      />
 
-      {error && <Alert variant="destructive">{error}</Alert>}
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
 
-      {!error && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Previous</TableHead>
-              <TableHead>Current</TableHead>
-              <TableHead>Units Used</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {history.map((r, i) => (
-              <TableRow key={i}>
-                <TableCell>{r.reading_date}</TableCell>
-                <TableCell>{r.previous_reading}</TableCell>
-                <TableCell>{r.current_reading}</TableCell>
-                <TableCell>{r.units_used}</TableCell>
-              </TableRow>
-            ))}
-            {history.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center text-gray-500">
-                  No readings yet
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      )}
-    </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Readings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <DataTableSkeleton rows={5} cols={4} />
+          ) : !error && history.length === 0 ? (
+            <EmptyState
+              title="No readings yet"
+              description="No historical readings found for this meter."
+              icon={<History className="size-5" />}
+              action={
+                <Button asChild>
+                  <Link href={`/dashboard/meter-reader/readings/${meterId}`}>
+                    Add reading
+                  </Link>
+                </Button>
+              }
+            />
+          ) : !error ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Previous</TableHead>
+                  <TableHead>Current</TableHead>
+                  <TableHead>Units used</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((r, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="tabular-nums">
+                      {r.reading_date}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {r.previous_reading}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {r.current_reading}
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {r.units_used}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : null}
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

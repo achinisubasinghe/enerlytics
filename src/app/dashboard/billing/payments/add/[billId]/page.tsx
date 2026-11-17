@@ -2,10 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { DataTableSkeleton } from "@/components/layout/DataTableSkeleton";
 import { useApi } from "@/hooks/use-api";
 
 export default function RecordPayment() {
@@ -27,18 +40,20 @@ export default function RecordPayment() {
     }
   }, [bill]);
 
-  async function submit(e: any) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSuccess("");
 
     if (!amount || parseFloat(amount) <= 0) {
-      setError("Please enter a valid payment amount");
+      setError("Please enter a valid payment amount.");
       return;
     }
 
     if (bill && parseFloat(amount) > parseFloat(bill.outstanding)) {
-      setError(`Payment exceeds outstanding amount of Rs. ${parseFloat(bill.outstanding).toFixed(2)}`);
+      setError(
+        `Payment exceeds outstanding amount of Rs. ${parseFloat(bill.outstanding).toFixed(2)}.`
+      );
       return;
     }
 
@@ -60,132 +75,164 @@ export default function RecordPayment() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Failed to record payment");
+        setError(data.message || "Failed to record payment.");
         setSubmitting(false);
         return;
       }
 
-      setSuccess(`Payment recorded successfully! Bill status: ${data.billStatus}`);
+      setSuccess(`Payment recorded successfully. Bill status: ${data.billStatus}.`);
       setTimeout(() => {
         router.push(`/dashboard/billing/bills/${params.billId}`);
       }, 2000);
-    } catch (err: unknown) {
-      setError("An error occurred while recording payment");
+    } catch {
+      setError("An error occurred while recording payment.");
       setSubmitting(false);
     }
   }
 
   if (loading) {
-    return <div className="p-6">Loading bill details...</div>;
+    return (
+      <PageShell className="max-w-lg">
+        <PageHeader title="Record payment" />
+        <DataTableSkeleton rows={4} cols={2} />
+      </PageShell>
+    );
   }
 
   if (!bill) {
-    return <div className="p-6">Bill not found</div>;
+    return (
+      <PageShell className="max-w-lg">
+        <PageHeader title="Record payment" />
+        <EmptyState
+          title="Bill not found"
+          description="This bill may have been removed or the link is invalid."
+          icon={<FileText className="size-5" />}
+        />
+      </PageShell>
+    );
   }
 
   return (
-    <div className="p-6 max-w-md mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Record Payment</h1>
+    <PageShell className="max-w-lg">
+      <PageHeader
+        title="Record payment"
+        description="Apply a payment against this bill."
+      />
 
-      <div className="bg-white p-4 rounded-lg shadow space-y-2">
-        <div className="flex justify-between">
-          <span className="text-gray-500">Bill ID:</span>
-          <span className="font-medium">#{bill.id}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Customer:</span>
-          <span className="font-medium">{bill.customer_name}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">Total Amount:</span>
-          <span className="font-medium">Rs. {parseFloat(bill.bill_amount).toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-lg font-bold border-t pt-2">
-          <span className="text-red-600">Outstanding:</span>
-          <span className="text-red-600">Rs. {parseFloat(bill.outstanding).toFixed(2)}</span>
-        </div>
-      </div>
-
-      <form onSubmit={submit} className="space-y-4 bg-white p-6 rounded-lg shadow">
-        <div>
-          <Label htmlFor="amount">Payment Amount *</Label>
-          <Input
-            id="amount"
-            type="number"
-            step="0.01"
-            min="0"
-            max={bill.outstanding}
-            value={amount}
-            onChange={(e: any) => setAmount(e.target.value)}
-            placeholder="Enter amount"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="paymentMethod">Payment Method *</Label>
-          <select
-            id="paymentMethod"
-            value={paymentMethod}
-            onChange={(e: any) => setPaymentMethod(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="CASH">Cash</option>
-            <option value="CARD">Card</option>
-            <option value="ONLINE">Online Transfer</option>
-            <option value="CHEQUE">Cheque</option>
-            <option value="MOBILE_PAYMENT">Mobile Payment</option>
-          </select>
-        </div>
-
-        {(paymentMethod === "ONLINE" || paymentMethod === "CARD" || paymentMethod === "CHEQUE") && (
-          <div>
-            <Label htmlFor="referenceNumber">Reference/Transaction Number</Label>
-            <Input
-              id="referenceNumber"
-              type="text"
-              value={referenceNumber}
-              onChange={(e: any) => setReferenceNumber(e.target.value)}
-              placeholder="Enter reference number"
-            />
+      <Card>
+        <CardHeader className="border-b">
+          <CardTitle>Bill summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Bill ID</span>
+              <span className="font-medium tabular-nums">#{bill.id}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Customer</span>
+              <span className="font-medium">{bill.customer_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Total amount</span>
+              <span className="font-medium tabular-nums">
+                Rs. {parseFloat(bill.bill_amount).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-border pt-2 text-base font-semibold text-destructive">
+              <span>Outstanding</span>
+              <span className="tabular-nums">
+                Rs. {parseFloat(bill.outstanding).toFixed(2)}
+              </span>
+            </div>
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        <div>
-          <Label htmlFor="notes">Notes (Optional)</Label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={(e: any) => setNotes(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={3}
-            placeholder="Additional notes..."
-          />
-        </div>
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Payment amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                max={bill.outstanding}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                className="tabular-nums"
+                required
+              />
+            </div>
 
-        {error && <Alert variant="destructive">{error}</Alert>}
-        {success && <Alert variant="success" className="bg-green-50 text-green-800 border-green-200">{success}</Alert>}
+            <div className="space-y-2">
+              <Label htmlFor="paymentMethod">Payment method</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger id="paymentMethod" className="w-full">
+                  <SelectValue placeholder="Select method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="CARD">Card</SelectItem>
+                  <SelectItem value="ONLINE">Online transfer</SelectItem>
+                  <SelectItem value="CHEQUE">Cheque</SelectItem>
+                  <SelectItem value="MOBILE_PAYMENT">Mobile payment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => router.back()}
-            disabled={submitting}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={submitting}
-            className="flex-1"
-          >
-            {submitting ? "Recording..." : "Record Payment"}
-          </Button>
-        </div>
-      </form>
-    </div>
+            {(paymentMethod === "ONLINE" ||
+              paymentMethod === "CARD" ||
+              paymentMethod === "CHEQUE") && (
+              <div className="space-y-2">
+                <Label htmlFor="referenceNumber">
+                  Reference / transaction number
+                </Label>
+                <Input
+                  id="referenceNumber"
+                  type="text"
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="Enter reference number"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="border-input bg-transparent placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
+                rows={3}
+                placeholder="Additional notes..."
+              />
+            </div>
+
+            {error && <Alert variant="destructive">{error}</Alert>}
+            {success && <Alert variant="success">{success}</Alert>}
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.back()}
+                disabled={submitting}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting} className="flex-1">
+                {submitting ? "Recording..." : "Record payment"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

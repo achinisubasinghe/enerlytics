@@ -1,49 +1,76 @@
 "use client";
 
-import { Users, Zap, ClipboardList, Wrench } from "lucide-react";
+import { Users, Zap, ClipboardList, Wrench, Droplets, Flame } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard } from "@/components/layout/StatCard";
+import { StatGridSkeleton } from "@/components/layout/DataTableSkeleton";
 
 export default function AdminStaffDashboard() {
   const { data: stats, loading } = useApi("/api/admin-staff/");
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Admin Staff Dashboard</h1>
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Admin Staff Dashboard</h1>
+    <PageShell>
+      <PageHeader
+        title="Admin staff dashboard"
+        description="Overview of customers, meters, and field operations."
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Stat title="Customers" value={stats?.customers || 0} icon={<Users />} />
-        <Stat title="Meters" value={stats?.meters || 0} icon={<Zap />} />
-        <Stat title="Meter Readers" value={stats?.meterReaders || 0} icon={<ClipboardList />} />
-        <Stat title="Fix Requests" value="—" icon={<Wrench />} />
-      </div>
+      {loading ? (
+        <div className="space-y-6">
+          <StatGridSkeleton count={4} />
+          <StatGridSkeleton count={3} />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Customers"
+              value={stats?.customers || 0}
+              icon={<Users className="size-5" />}
+            />
+            <StatCard
+              title="Meters"
+              value={stats?.meters || 0}
+              icon={<Zap className="size-5" />}
+            />
+            <StatCard
+              title="Meter readers"
+              value={stats?.meterReaders || 0}
+              icon={<ClipboardList className="size-5" />}
+            />
+            <StatCard
+              title="Fix requests"
+              value="—"
+              icon={<Wrench className="size-5" />}
+            />
+          </div>
 
-      <h2 className="text-lg font-semibold mb-4">Meters by Utility</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <Stat title="Electricity Meters" value={stats?.electricityMeters || 0} icon={<Zap />} />
-        <Stat title="Water Meters" value={stats?.waterMeters || 0} icon={<Wrench />} />
-        <Stat title="Gas Meters" value={stats?.gasMeters || 0} icon={<ClipboardList />} />
-      </div>
-    </div>
-  );
-}
-
-function Stat({ title, value, icon }) {
-  return (
-    <div className="bg-white p-6 rounded-lg shadow flex items-center gap-4">
-      <div className="p-3 bg-gray-100 rounded-full">{icon}</div>
-      <div>
-        <p className="text-sm text-gray-500">{title}</p>
-        <h3 className="text-xl font-bold">{value}</h3>
-      </div>
-    </div>
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              Meters by utility
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <StatCard
+                title="Electricity meters"
+                value={stats?.electricityMeters || 0}
+                icon={<Zap className="size-5" />}
+              />
+              <StatCard
+                title="Water meters"
+                value={stats?.waterMeters || 0}
+                icon={<Droplets className="size-5" />}
+              />
+              <StatCard
+                title="Gas meters"
+                value={stats?.gasMeters || 0}
+                icon={<Flame className="size-5" />}
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </PageShell>
   );
 }

@@ -1,12 +1,30 @@
 "use client";
 
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { use } from "react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export default function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditUserPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
-  console.log(use(params));
   const { id: userId } = use(params);
 
   const [form, setForm] = useState({
@@ -18,13 +36,16 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
   });
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadUser() {
-      const res = await fetch(`/api/admin/users/${userId}`)
+      const res = await fetch(`/api/admin/users/${userId}`);
       if (!res.ok) {
-        alert("User not found");
-        router.back();
+        setError("User not found");
+        setLoading(false);
         return;
       }
 
@@ -34,14 +55,17 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     }
 
     loadUser();
-  }, [userId, router]);
+  }, [userId]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
 
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: "PUT",
@@ -50,60 +74,135 @@ export default function EditUserPage({ params }: { params: Promise<{ id: string 
     });
 
     if (!res.ok) {
-      alert("Update failed");
+      setError("Update failed");
+      setSaving(false);
       return;
     }
 
-    alert("User updated successfully!");
+    setSuccess("User updated successfully.");
+    setSaving(false);
     router.push("/dashboard/admin/users");
   }
 
-  if (loading) return <p className="p-6">Loading...</p>;
+  if (loading) {
+    return (
+      <PageShell>
+        <PageHeader title="Edit user" description="Update account details." />
+        <Card className="max-w-xl">
+          <CardContent className="space-y-4 pt-6">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </CardContent>
+        </Card>
+      </PageShell>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-xl">
-      <h1 className="text-2xl font-bold mb-6">Edit User</h1>
+    <PageShell>
+      <PageHeader
+        title="Edit user"
+        description="Update account details and role."
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/admin/users">Back to users</Link>
+          </Button>
+        }
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm mb-1">Full Name</label>
-          <input name="name" value={form.name} onChange={handleChange} className="w-full border rounded p-2" />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Email</label>
-          <input name="email" value={form.email} onChange={handleChange} className="w-full border rounded p-2" />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Phone Number</label>
-          <input name="phone" value={form.phone} onChange={handleChange} className="w-full border rounded p-2" />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">NIC</label>
-          <input name="nic" value={form.nic} onChange={handleChange} className="w-full border rounded p-2" />
-        </div>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
 
+      {success ? (
+        <Alert variant="success">
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      ) : null}
 
-        <div>
-          <label className="block text-sm mb-1">Role</label>
-          <select name="role" value={form.role} onChange={handleChange} className="w-full border rounded p-2">
-            <option value="ADMIN_STAFF">Admin Staff</option>
-            <option value="MANAGER">Billing Clerk</option>
-            <option value="METER_READER">Meter Reader</option>
-            <option value="CASHIER">Billing Clerk</option>
-          </select>
-        </div>
+      <Card className="max-w-xl">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full name</Label>
+              <Input
+                id="name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+              />
+            </div>
 
-        <div className="flex gap-4 mt-4">
-          <button className="bg-gray-300 px-4 py-2 rounded" >Update</button>
-          <button
-            type="button"
-            className="bg-gray-300 px-4 py-2 rounded"
-            onClick={() => router.back()}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                className="tabular-nums"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nic">NIC</Label>
+              <Input
+                id="nic"
+                name="nic"
+                value={form.nic}
+                onChange={handleChange}
+                className="tabular-nums"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select
+                value={form.role}
+                onValueChange={(value) => setForm({ ...form, role: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ADMIN_STAFF">Admin staff</SelectItem>
+                  <SelectItem value="MANAGER">Manager</SelectItem>
+                  <SelectItem value="METER_READER">Meter reader</SelectItem>
+                  <SelectItem value="CASHIER">Billing clerk</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" className="flex-1" disabled={saving}>
+                {saving ? "Updating..." : "Update"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

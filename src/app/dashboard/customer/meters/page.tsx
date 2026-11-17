@@ -3,141 +3,142 @@
 import { useApi } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard } from "@/components/layout/StatCard";
+import { EmptyState } from "@/components/layout/EmptyState";
+import {
+  DataTableSkeleton,
+  StatGridSkeleton,
+} from "@/components/layout/DataTableSkeleton";
+import { Gauge, Droplets, Flame, Zap } from "lucide-react";
+
+function meterStatusVariant(status: string) {
+  switch (status) {
+    case "ACTIVE":
+      return "success" as const;
+    case "MAINTENANCE":
+      return "warning" as const;
+    case "INACTIVE":
+    default:
+      return "secondary" as const;
+  }
+}
+
+function UtilityIcon({ type }: { type: string }) {
+  switch (type) {
+    case "ELECTRICITY":
+      return <Zap className="size-5" />;
+    case "WATER":
+      return <Droplets className="size-5" />;
+    case "GAS":
+      return <Flame className="size-5" />;
+    default:
+      return <Gauge className="size-5" />;
+  }
+}
 
 export default function CustomerMetersPage() {
-    const { data: meters, loading } = useApi("/api/customer/meters");
+  const { data: meters, loading } = useApi("/api/customer/meters");
 
-    const metersList = meters || [];
+  const metersList = meters || [];
+  const activeMeters = metersList.filter(
+    (meter: any) => meter.status === "ACTIVE"
+  );
+  const inactiveMeters = metersList.filter(
+    (meter: any) => meter.status === "INACTIVE"
+  );
 
-    const getStatusColor = (status: any) => {
-        switch (status) {
-            case "ACTIVE":
-                return "bg-green-500";
-            case "INACTIVE":
-                return "bg-gray-500";
-            case "MAINTENANCE":
-                return "bg-yellow-500";
-            default:
-                return "bg-gray-500";
-        }
-    };
+  return (
+    <PageShell>
+      <PageHeader
+        title="My meters"
+        description="Meters registered to your account"
+      />
 
-    const getUtilityIcon = (type: any) => {
-        switch (type) {
-            case "ELECTRICITY":
-                return "⚡";
-            case "WATER":
-                return "💧";
-            case "GAS":
-                return "🔥";
-            default:
-                return "📊";
-        }
-    };
-
-    const activeMeters = metersList.filter((meter) => meter.status === "ACTIVE");
-    const inactiveMeters = metersList.filter((meter) => meter.status === "INACTIVE");
-
-    return (
-        <div className="p-6">
-            <h1 className="text-3xl font-bold mb-6">My Meters</h1>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Meters</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl font-bold">{metersList.length}</p>
-                        <p className="text-sm text-gray-500 mt-2">Registered meters</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Active Meters</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl font-bold text-green-600">
-                            {activeMeters.length}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-2">Currently active</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Inactive Meters</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl font-bold text-gray-600">
-                            {inactiveMeters.length}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-2">Not in use</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Meters List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Meter Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                        <p className="text-gray-500">Loading meters...</p>
-                    ) : metersList.length === 0 ? (
-                        <div className="text-center py-8">
-                            <p className="text-gray-500 mb-2">No meters found</p>
-                            <p className="text-sm text-gray-400">
-                                Contact admin staff to get meters assigned to your account
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {metersList.map((meter) => (
-                                <div
-                                    key={meter.id}
-                                    className="p-5 border rounded-lg hover:shadow-md transition-shadow"
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="text-3xl">
-                                            {getUtilityIcon(meter.utility_type)}
-                                        </div>
-                                        <Badge className={getStatusColor(meter.status)}>
-                                            {meter.status}
-                                        </Badge>
-                                    </div>
-
-                                    <h3 className="font-bold text-lg mb-1">
-                                        {meter.meter_number}
-                                    </h3>
-
-                                    <div className="space-y-2 text-sm">
-                                        <div>
-                                            <p className="text-gray-500">Utility Type</p>
-                                            <p className="font-medium">{meter.utility_type}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500">Unit</p>
-                                            <p className="font-medium">{meter.unit}</p>
-                                        </div>
-                                        {meter.created_at && (
-                                            <div>
-                                                <p className="text-gray-500">Registered</p>
-                                                <p className="font-medium">
-                                                    {new Date(meter.created_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+      {loading ? (
+        <StatGridSkeleton count={3} />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StatCard
+            title="Total meters"
+            value={metersList.length}
+            hint="Registered meters"
+            icon={<Gauge className="size-5" />}
+          />
+          <StatCard
+            title="Active meters"
+            value={activeMeters.length}
+            hint="Currently active"
+            icon={<Zap className="size-5" />}
+            valueClassName="text-success"
+          />
+          <StatCard
+            title="Inactive meters"
+            value={inactiveMeters.length}
+            hint="Not in use"
+            icon={<Gauge className="size-5" />}
+          />
         </div>
-    );
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Meter details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <DataTableSkeleton rows={3} cols={3} />
+          ) : metersList.length === 0 ? (
+            <EmptyState
+              title="No meters found"
+              description="Contact admin staff to get meters assigned to your account."
+              icon={<Gauge className="size-5" />}
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {metersList.map((meter: any) => (
+                <div
+                  key={meter.id}
+                  className="rounded-lg border border-border p-5"
+                >
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className="flex size-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <UtilityIcon type={meter.utility_type} />
+                    </div>
+                    <Badge variant={meterStatusVariant(meter.status)}>
+                      {meter.status}
+                    </Badge>
+                  </div>
+
+                  <h3 className="mb-1 text-lg font-semibold tabular-nums">
+                    {meter.meter_number}
+                  </h3>
+
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Utility type</p>
+                      <p className="font-medium">{meter.utility_type}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Unit</p>
+                      <p className="font-medium">{meter.unit}</p>
+                    </div>
+                    {meter.created_at ? (
+                      <div>
+                        <p className="text-muted-foreground">Registered</p>
+                        <p className="font-medium tabular-nums">
+                          {new Date(meter.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </PageShell>
+  );
 }

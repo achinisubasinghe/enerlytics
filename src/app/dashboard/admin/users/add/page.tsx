@@ -1,13 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { apiCall } from "@/hooks/use-api";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { apiCall } from "@/hooks/use-api";
-import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AddUserPage() {
   const router = useRouter();
@@ -20,14 +30,18 @@ export default function AddUserPage() {
     nic: "",
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
+    setSuccess(null);
 
     try {
       await apiCall("/api/admin/add-user", {
@@ -35,26 +49,46 @@ export default function AddUserPage() {
         body: JSON.stringify(form),
       });
 
-      alert("User added successfully!");
+      setSuccess("User added successfully.");
       router.push("/dashboard/admin/users");
     } catch (err: unknown) {
-      alert((err as Error).message || "Error adding user");
+      setError((err as Error).message || "Error adding user");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="p-6">
-      <Card className="max-w-xl shadow-sm rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold">Add New User</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <PageShell>
+      <PageHeader
+        title="Add new user"
+        description="Create a staff or operational account."
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/admin/users">Back to users</Link>
+          </Button>
+        }
+      />
+
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {success ? (
+        <Alert variant="success">
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <Card className="max-w-xl">
+        <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <Label>Full Name</Label>
+            <div className="space-y-2">
+              <Label htmlFor="fullname">Full name</Label>
               <Input
+                id="fullname"
                 name="fullname"
                 placeholder="Enter full name"
                 value={form.fullname}
@@ -63,9 +97,10 @@ export default function AddUserPage() {
               />
             </div>
 
-            <div className="space-y-1">
-              <Label>Email</Label>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
               <Input
+                id="email"
                 type="email"
                 name="email"
                 placeholder="Enter email"
@@ -75,29 +110,34 @@ export default function AddUserPage() {
               />
             </div>
 
-            <div className="space-y-1">
-              <Label>Phone Number</Label>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone number</Label>
               <Input
+                id="phone"
                 name="phone"
                 placeholder="07XXXXXXXX"
                 value={form.phone}
                 onChange={handleChange}
+                className="tabular-nums"
               />
             </div>
 
-            <div className="space-y-1">
-              <Label>NIC</Label>
+            <div className="space-y-2">
+              <Label htmlFor="nic">NIC</Label>
               <Input
+                id="nic"
                 name="nic"
-                placeholder="Enter NIC Number"
+                placeholder="Enter NIC number"
                 value={form.nic}
                 onChange={handleChange}
+                className="tabular-nums"
               />
             </div>
 
-            <div className="space-y-1">
-              <Label>Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
               <Input
+                id="password"
                 type="password"
                 name="password"
                 placeholder="Enter password"
@@ -107,27 +147,40 @@ export default function AddUserPage() {
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label>Role</Label>
-              <Select onValueChange={(value) => setForm({ ...form, role: value })} required>
+              <Select
+                value={form.role || undefined}
+                onValueChange={(value) => setForm({ ...form, role: value })}
+                required
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ADMIN_STAFF">Admin Staff</SelectItem>
+                  <SelectItem value="ADMIN_STAFF">Admin staff</SelectItem>
                   <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="METER_READER">Meter Reader</SelectItem>
-                  <SelectItem value="CASHIER">Billing Clerk</SelectItem>
+                  <SelectItem value="METER_READER">Meter reader</SelectItem>
+                  <SelectItem value="CASHIER">Billing clerk</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <Button type="submit" className="w-full mt-4" disabled={loading}>
-              {loading ? "Adding..." : "Add User"}
-            </Button>
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading ? "Adding..." : "Add user"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Table,
   TableHeader,
@@ -10,27 +12,34 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useMemo, useState } from "react";
-import { Search, UserPlus } from "lucide-react";
+import { Search, UserPlus, Users } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { DataTableSkeleton } from "@/components/layout/DataTableSkeleton";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
 
-  async function deleteCustomer(id) {
+  async function deleteCustomer(id: string | number) {
     if (!confirm("Delete customer?")) return;
 
+    setError("");
     const res = await fetch(`/api/admin-staff/customers/${id}`, {
       method: "DELETE",
     });
 
     if (!res.ok) {
-      alert("Delete failed");
+      setError("Delete failed");
       return;
     }
 
-    setCustomers(prev => prev.filter((c: any) => c.id !== id));
+    setCustomers((prev) => prev.filter((c: any) => c.id !== id));
   }
 
   useEffect(() => {
@@ -44,6 +53,7 @@ export default function CustomersPage() {
         setCustomers(Array.isArray(data) ? data : []);
       } catch (err: unknown) {
         console.error("Fetch failed:", err);
+        setError("Failed to load customers");
       } finally {
         setLoading(false);
       }
@@ -52,100 +62,116 @@ export default function CustomersPage() {
     loadCustomers();
   }, []);
 
-  /* ---------- SEARCH FILTER ---------- */
   const filteredCustomers = useMemo(() => {
-    return customers.filter((c: any) =>
-      c.name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.email?.toLowerCase().includes(search.toLowerCase()) ||
-      c.nic?.toLowerCase().includes(search.toLowerCase())
+    return customers.filter(
+      (c: any) =>
+        c.name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.email?.toLowerCase().includes(search.toLowerCase()) ||
+        c.nic?.toLowerCase().includes(search.toLowerCase())
     );
   }, [customers, search]);
 
   return (
-    <div className="bg-white shadow border rounded-lg p-6 mt-4 mx-2 space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Customer Management</h1>
-          <p className="text-sm text-gray-500">
-            Total customers: {customers.length}
-          </p>
-        </div>
-
-        <Link href="/dashboard/admin-staff/customers/add">
-          <Button className="flex items-center gap-2">
-            <UserPlus size={16} />
-            Add Customer
+    <PageShell>
+      <PageHeader
+        title="Customers"
+        description={`Total customers: ${customers.length}`}
+        actions={
+          <Button asChild>
+            <Link href="/dashboard/admin-staff/customers/add">
+              <UserPlus className="size-4" />
+              Add customer
+            </Link>
           </Button>
-        </Link>
-      </div>
+        }
+      />
 
-      {/* SEARCH */}
-      <div className="relative w-full md:w-1/3">
-        <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-        <input
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
           type="text"
-          placeholder="Search by name, email or NIC..."
+          placeholder="Search by name, email or NIC…"
           value={search}
-          onChange={(e: any) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 border rounded focus:outline-none focus:ring"
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
         />
       </div>
 
-      {/* TABLE */}
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gray-100">
-            <TableHead>Full Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>NIC</TableHead>
-            <TableHead className="text-center">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {loading && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-6">
-                Loading customers...
-              </TableCell>
-            </TableRow>
-          )}
-
-          {!loading && filteredCustomers.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-6 text-gray-500">
-                No customers found
-              </TableCell>
-            </TableRow>
-          )}
-
-          {!loading &&
-            filteredCustomers.map((c: any) => (
-              <TableRow key={c.id} className="hover:bg-gray-50">
-                <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell>{c.email}</TableCell>
-                <TableCell>{c.phone || "—"}</TableCell>
-                <TableCell>{c.nic || "—"}</TableCell>
-                <TableCell className="text-center space-x-2">
-                  <Link href={`/dashboard/admin-staff/customers/${c.id}/edit`}>
-                    <Button size="sm" variant="outline">
-                      Edit
+      <Card className="py-0">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6">
+              <DataTableSkeleton rows={6} cols={5} />
+            </div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No customers found"
+                description={
+                  search
+                    ? "Try a different search term."
+                    : "Add your first customer to get started."
+                }
+                icon={<Users className="size-5" />}
+                action={
+                  !search ? (
+                    <Button asChild size="sm">
+                      <Link href="/dashboard/admin-staff/customers/add">
+                        <UserPlus className="size-4" />
+                        Add customer
+                      </Link>
                     </Button>
-                  </Link>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteCustomer(c.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-        </TableBody>
-      </Table>
-    </div>
+                  ) : null
+                }
+              />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Full name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>NIC</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.map((c: any) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell>{c.email}</TableCell>
+                    <TableCell className="tabular-nums">{c.phone || "—"}</TableCell>
+                    <TableCell className="tabular-nums">{c.nic || "—"}</TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center gap-2">
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/dashboard/admin-staff/customers/${c.id}/edit`}>
+                            Edit
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteCustomer(c.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

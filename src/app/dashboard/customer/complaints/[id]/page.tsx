@@ -1,138 +1,174 @@
 "use client";
 
 import { use } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useApi } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function ComplaintDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const router = useRouter();
-    const resolvedParams = use(params) as { id: string };
-    const { data: complaint, loading } = useApi(`/api/customer/complaints/${resolvedParams.id}`);
+function complaintStatusVariant(status: string) {
+  switch (status) {
+    case "PENDING":
+      return "warning" as const;
+    case "IN_PROGRESS":
+      return "default" as const;
+    case "RESOLVED":
+      return "success" as const;
+    case "CLOSED":
+      return "secondary" as const;
+    default:
+      return "secondary" as const;
+  }
+}
 
-    const getStatusColor = (status: any) => {
-        switch (status) {
-            case "PENDING":
-                return "bg-yellow-500";
-            case "IN_PROGRESS":
-                return "bg-blue-500";
-            case "RESOLVED":
-                return "bg-green-500";
-            case "CLOSED":
-                return "bg-gray-500";
-            default:
-                return "bg-gray-500";
-        }
-    };
+export default function ComplaintDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const resolvedParams = use(params) as { id: string };
+  const { data: complaint, loading } = useApi(
+    `/api/customer/complaints/${resolvedParams.id}`
+  );
 
-    if (loading) {
-        return (
-            <div className="p-6">
-                <p className="text-gray-500">Loading complaint details...</p>
-            </div>
-        );
-    }
-
-    if (!complaint) {
-        return (
-            <div className="p-6">
-                <p className="text-red-500">Complaint not found</p>
-                <Button onClick={() => router.push("/dashboard/customer/complaints")} className="mt-4">
-                    Back to Complaints
-                </Button>
-            </div>
-        );
-    }
-
+  if (loading) {
     return (
-        <div className="p-6 max-w-4xl">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">Complaint Details</h1>
-                <Button variant="outline" onClick={() => router.push("/dashboard/customer/complaints")}>
-                    Back to List
-                </Button>
-            </div>
-
-            <div className="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <CardTitle>Complaint #{complaint.id}</CardTitle>
-                            <Badge className={getStatusColor(complaint.status)}>
-                                {complaint.status.replace("_", " ")}
-                            </Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <h3 className="font-semibold text-lg mb-2">{complaint.subject}</h3>
-                            <p className="text-sm text-gray-500">
-                                Submitted on: {new Date(complaint.created_at).toLocaleString()}
-                            </p>
-                            {complaint.updated_at && complaint.updated_at !== complaint.created_at && (
-                                <p className="text-sm text-gray-500">
-                                    Last updated: {new Date(complaint.updated_at).toLocaleString()}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <h4 className="font-semibold mb-2">Complaint Description</h4>
-                            <p className="text-gray-700 whitespace-pre-wrap">{complaint.complaint_text}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {complaint.response && (
-                    <Card className="border-green-200 bg-green-50">
-                        <CardHeader>
-                            <CardTitle className="text-green-800">Official Response</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-gray-700 whitespace-pre-wrap">{complaint.response}</p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {complaint.notes && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Internal Notes</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-gray-700 whitespace-pre-wrap">{complaint.notes}</p>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {!complaint.response && complaint.status === "PENDING" && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p className="text-blue-800 text-sm">
-                            Your complaint has been received and is pending review.
-                            Our team will respond to you shortly.
-                        </p>
-                    </div>
-                )}
-
-                {complaint.status === "IN_PROGRESS" && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <p className="text-yellow-800 text-sm">
-                            Your complaint is currently being processed by our team.
-                        </p>
-                    </div>
-                )}
-
-                {complaint.status === "RESOLVED" && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <p className="text-green-800 text-sm">
-                            This complaint has been resolved. If you need further assistance,
-                            please submit a new complaint.
-                        </p>
-                    </div>
-                )}
-            </div>
-        </div>
+      <PageShell className="max-w-4xl">
+        <PageHeader title="Complaint details" />
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-24 w-full" />
+          </CardContent>
+        </Card>
+      </PageShell>
     );
+  }
+
+  if (!complaint) {
+    return (
+      <PageShell className="max-w-4xl">
+        <PageHeader
+          title="Complaint details"
+          actions={
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/customer/complaints">Back to list</Link>
+            </Button>
+          }
+        />
+        <Alert variant="destructive">
+          <AlertDescription>Complaint not found.</AlertDescription>
+        </Alert>
+      </PageShell>
+    );
+  }
+
+  return (
+    <PageShell className="max-w-4xl">
+      <PageHeader
+        title="Complaint details"
+        description={`Complaint #${complaint.id}`}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/customer/complaints">Back to list</Link>
+          </Button>
+        }
+      />
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle>Complaint #{complaint.id}</CardTitle>
+              <Badge variant={complaintStatusVariant(complaint.status)}>
+                {complaint.status.replace("_", " ")}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h3 className="mb-2 text-lg font-semibold">{complaint.subject}</h3>
+              <p className="text-sm text-muted-foreground tabular-nums">
+                Submitted on:{" "}
+                {new Date(complaint.created_at).toLocaleString()}
+              </p>
+              {complaint.updated_at &&
+              complaint.updated_at !== complaint.created_at ? (
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  Last updated:{" "}
+                  {new Date(complaint.updated_at).toLocaleString()}
+                </p>
+              ) : null}
+            </div>
+
+            <div>
+              <h4 className="mb-2 font-semibold">Complaint description</h4>
+              <p className="whitespace-pre-wrap text-foreground">
+                {complaint.complaint_text}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {complaint.response ? (
+          <Card className="border-success/30 bg-success/5">
+            <CardHeader>
+              <CardTitle className="text-success">Official response</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-foreground">
+                {complaint.response}
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {complaint.notes ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Internal notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-foreground">
+                {complaint.notes}
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {!complaint.response && complaint.status === "PENDING" ? (
+          <Alert>
+            <AlertDescription>
+              Your complaint has been received and is pending review. Our team
+              will respond to you shortly.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {complaint.status === "IN_PROGRESS" ? (
+          <Alert>
+            <AlertDescription>
+              Your complaint is currently being processed by our team.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {complaint.status === "RESOLVED" ? (
+          <Alert variant="success">
+            <AlertDescription>
+              This complaint has been resolved. If you need further assistance,
+              please submit a new complaint.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+      </div>
+    </PageShell>
+  );
 }

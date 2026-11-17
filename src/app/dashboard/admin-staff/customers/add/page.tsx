@@ -3,10 +3,26 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function AddCustomerPage() {
   const router = useRouter();
@@ -20,13 +36,17 @@ export default function AddCustomerPage() {
   });
   const [createLogin, setCreateLogin] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
     const res = await fetch("/api/admin-staff/customers/add", {
       method: "POST",
@@ -37,7 +57,8 @@ export default function AddCustomerPage() {
     if (!res.ok) {
       const text = await res.text();
       console.error(text);
-      alert("API error");
+      setError("Failed to add customer");
+      setLoading(false);
       return;
     }
 
@@ -45,88 +66,166 @@ export default function AddCustomerPage() {
 
     if (data.password) {
       setGeneratedPassword(data.password);
+      setLoading(false);
     } else {
-      alert("Customer added successfully");
       router.push("/dashboard/admin-staff/customers");
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 max-w-xl space-y-4">
-      <h1 className="text-2xl font-bold">Add Customer</h1>
+    <PageShell>
+      <PageHeader
+        title="Add customer"
+        description="Create a customer record and optionally issue a login."
+      />
 
-      <div className="space-y-2">
-        <Label>Full Name</Label>
-        <Input name="name" value={form.name} onChange={handleChange} required />
-      </div>
+      <Card className="max-w-xl">
+        <CardHeader>
+          <CardTitle>Customer details</CardTitle>
+          <CardDescription>All fields marked as required must be completed.</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            {error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
 
-      <div className="space-y-2">
-        <Label>Email</Label>
-        <Input name="email" value={form.email} onChange={handleChange} required />
-      </div>
+            {generatedPassword ? (
+              <Alert variant="success">
+                <AlertTitle>Customer account created</AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">Customer and login account created successfully.</p>
+                  <div className="rounded-md border border-border bg-card p-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Temporary password (save this now)
+                    </p>
+                    <p className="mt-1 select-all font-mono text-lg font-semibold tabular-nums text-foreground">
+                      {generatedPassword}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-warning-foreground">
+                    This password will only be shown once. Save it and share with the customer.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
 
-      <div className="space-y-2">
-        <Label>Phone Number</Label>
-        <Input name="phone" value={form.phone} onChange={handleChange} />
-      </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
 
-      <div className="space-y-2">
-        <Label>NIC</Label>
-        <Input name="nic" value={form.nic} onChange={handleChange} />
-      </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone number</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
+                    className="tabular-nums"
+                  />
+                </div>
 
-      <div className="space-y-2">
-        <Label>Address</Label>
-        <Input name="address" value={form.address} onChange={handleChange} />
-      </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nic">NIC</Label>
+                  <Input
+                    id="nic"
+                    name="nic"
+                    value={form.nic}
+                    onChange={handleChange}
+                    className="tabular-nums"
+                  />
+                </div>
 
-      <div className="space-y-2 flex  items-center gap-4">
-        <Label className="mb-3">Type </Label>
-        <Select value={form.customerType} onValueChange={value => setForm({ ...form, customerType: value })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="HOUSEHOLD">Household</SelectItem>
-            <SelectItem value="BUSINESS">Business</SelectItem>
-            <SelectItem value="GOVERNMENT">Government</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={form.address}
+                    onChange={handleChange}
+                  />
+                </div>
 
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="createLogin"
-          checked={createLogin}
-          onChange={(e: any) => setCreateLogin(e.target.checked)}
-          className="w-4 h-4"
-        />
-        <Label htmlFor="createLogin" className="cursor-pointer">
-          Create Login Account (generates temporary password)
-        </Label>
-      </div>
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select
+                    value={form.customerType}
+                    onValueChange={(value) => setForm({ ...form, customerType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HOUSEHOLD">Household</SelectItem>
+                      <SelectItem value="BUSINESS">Business</SelectItem>
+                      <SelectItem value="GOVERNMENT">Government</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-      {generatedPassword ? (
-        <div className="bg-green-50 border border-green-200 rounded p-4 space-y-3">
-          <h2 className="text-lg font-semibold text-green-800">Customer Account Created!</h2>
-          <p className="text-sm text-gray-600">Customer and login account created successfully.</p>
-          <div className="bg-white border border-green-300 rounded p-3">
-            <Label className="text-sm font-medium">Temporary Password (save this now):</Label>
-            <div className="mt-2 font-mono text-lg font-bold text-green-700 select-all">
-              {generatedPassword}
-            </div>
-          </div>
-          <p className="text-sm text-amber-600 font-medium">
-            ⚠️ This password will only be shown once. Please save it and share with the customer.
-          </p>
-          <Button type="button" onClick={() => router.push("/dashboard/admin-staff/customers")} className="w-full">
-            Go to Customers List
-          </Button>
-        </div>
-      ) : (
-        <Button className="w-full">Save Customer</Button>
-      )}
-    </form>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="createLogin"
+                    checked={createLogin}
+                    onChange={(e) => setCreateLogin(e.target.checked)}
+                    className="size-4 rounded border-border accent-primary"
+                  />
+                  <Label htmlFor="createLogin" className="cursor-pointer font-normal">
+                    Create login account (generates temporary password)
+                  </Label>
+                </div>
+              </>
+            )}
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            {generatedPassword ? (
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => router.push("/dashboard/admin-staff/customers")}
+              >
+                Go to customers list
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1" disabled={loading}>
+                  {loading ? "Saving…" : "Save customer"}
+                </Button>
+              </>
+            )}
+          </CardFooter>
+        </form>
+      </Card>
+    </PageShell>
   );
 }

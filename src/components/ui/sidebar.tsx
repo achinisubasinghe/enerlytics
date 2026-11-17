@@ -471,10 +471,10 @@ function SidebarMenuItem({
         else if (href) window.location.href = href;
       }}
       className={cn(
-        "group/menu-item relative flex items-center gap-3 px-4 py-2 cursor-pointer rounded-md transition",
+        "group/menu-item relative flex cursor-pointer items-center gap-3 rounded-md px-4 py-2 transition-colors duration-200",
         isActive
-          ? "bg-gray-200 font-semibold text-blue-600"
-          : "text-gray-700 hover:bg-gray-100",
+          ? "bg-sidebar-accent font-semibold text-sidebar-primary"
+          : "text-sidebar-foreground hover:bg-sidebar-accent/70",
         className
       )}
       {...props}
@@ -482,8 +482,8 @@ function SidebarMenuItem({
       {Icon && (
         <Icon
           className={cn(
-            "w-5 h-5 transition",
-            isActive ? "text-blue-600" : "text-gray-600"
+            "h-5 w-5 transition-colors duration-200",
+            isActive ? "text-sidebar-primary" : "text-muted-foreground"
           )}
         />
       )}

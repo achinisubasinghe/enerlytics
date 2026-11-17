@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  Users,
-  CreditCard,
-  Clock,
-  UserCog,
-} from "lucide-react";
+import { Users, CreditCard, Clock, UserCog, UserPlus } from "lucide-react";
 import { useApi } from "@/hooks/use-api";
 import Link from "next/link";
 import {
@@ -20,8 +15,31 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-
-const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#9333ea"];
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard } from "@/components/layout/StatCard";
+import { EmptyState } from "@/components/layout/EmptyState";
+import {
+  DataTableSkeleton,
+  StatGridSkeleton,
+} from "@/components/layout/DataTableSkeleton";
+import {
+  CHART_COLORS,
+  CHART_PRIMARY,
+  CHART_GRID,
+  CHART_AXIS,
+} from "@/lib/chart-colors";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminDashboard() {
   const { data: users, loading } = useApi("/api/admin/users");
@@ -29,15 +47,12 @@ export default function AdminDashboard() {
 
   const userList = users || [];
 
-  /* ---------- STATS ---------- */
   const stats = {
     totalUsers: userList.length,
     totalPayments: 842000,
     pendingPayments: 47,
     meterReaders: meterReaderData?.count || 0,
   };
-
-  /* ---------- CHART DATA (DUMMY but realistic) ---------- */
 
   const paymentsTrend = [
     { month: "Aug", amount: 120000 },
@@ -48,153 +63,171 @@ export default function AdminDashboard() {
   ];
 
   const roleDistribution = [
-    { name: "Customers", value: userList.filter((u: any) => u.role === "CUSTOMER").length || 45 },
-    { name: "Meter Readers", value: userList.filter((u: any) => u.role === "METER_READER").length || 12 },
-    { name: "Cashiers", value: userList.filter((u: any) => u.role === "CASHIER").length || 6 },
-    { name: "Admins", value: userList.filter((u: any) => u.role === "ADMIN").length || 3 },
+    {
+      name: "Customers",
+      value:
+        userList.filter((u: any) => u.role === "CUSTOMER").length || 45,
+    },
+    {
+      name: "Meter Readers",
+      value:
+        userList.filter((u: any) => u.role === "METER_READER").length || 12,
+    },
+    {
+      name: "Cashiers",
+      value: userList.filter((u: any) => u.role === "CASHIER").length || 6,
+    },
+    {
+      name: "Admins",
+      value: userList.filter((u: any) => u.role === "ADMIN").length || 3,
+    },
   ];
 
   return (
-    <div className="p-6 space-y-8">
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <Link href="/dashboard/admin/users/add">
-          <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
-            + Add New User
-          </button>
-        </Link>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Admin dashboard"
+        description="Overview of users, payments, and system activity."
+        actions={
+          <Button asChild>
+            <Link href="/dashboard/admin/users/add">
+              <UserPlus className="size-4" />
+              Add new user
+            </Link>
+          </Button>
+        }
+      />
 
-      {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <SummaryCard
-          icon={<Users className="w-8 h-8 text-blue-600" />}
-          title="Total Users"
-          value={stats.totalUsers}
-        />
-        <SummaryCard
-          icon={<CreditCard className="w-8 h-8 text-green-600" />}
-          title="Total Payments"
-          value={`LKR ${stats.totalPayments.toLocaleString()}`}
-        />
-        <SummaryCard
-          icon={<Clock className="w-8 h-8 text-yellow-500" />}
-          title="Pending Payments"
-          value={stats.pendingPayments}
-        />
-        <SummaryCard
-          icon={<UserCog className="w-8 h-8 text-purple-600" />}
-          title="Meter Readers"
-          value={stats.meterReaders}
-        />
-      </div>
-
-      {/* CHARTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* PAYMENTS LINE CHART */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">
-            Payments Overview (Last 5 Months)
-          </h2>
-
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={paymentsTrend}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="amount"
-                stroke="#2563eb"
-                strokeWidth={3}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+      {loading ? (
+        <StatGridSkeleton count={4} />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            icon={<Users className="size-5" />}
+            title="Total users"
+            value={stats.totalUsers}
+          />
+          <StatCard
+            icon={<CreditCard className="size-5" />}
+            title="Total payments"
+            value={`LKR ${stats.totalPayments.toLocaleString()}`}
+          />
+          <StatCard
+            icon={<Clock className="size-5" />}
+            title="Pending payments"
+            value={stats.pendingPayments}
+          />
+          <StatCard
+            icon={<UserCog className="size-5" />}
+            title="Meter readers"
+            value={stats.meterReaders}
+          />
         </div>
+      )}
 
-        {/* USERS PIE CHART */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">
-            Users by Role
-          </h2>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Payments overview (last 5 months)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={paymentsTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} />
+                <XAxis dataKey="month" stroke={CHART_AXIS} />
+                <YAxis stroke={CHART_AXIS} className="tabular-nums" />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="amount"
+                  stroke={CHART_PRIMARY}
+                  strokeWidth={3}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={roleDistribution}
-                dataKey="value"
-                nameKey="name"
-                outerRadius={100}
-                label
-              >
-                {roleDistribution.map((_, index) => (
-                  <Cell
-                    key={index}
-                    fill={COLORS[index % COLORS.length]}
-                  />
+        <Card>
+          <CardHeader>
+            <CardTitle>Users by role</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={roleDistribution}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={100}
+                  label
+                >
+                  {roleDistribution.map((_, index) => (
+                    <Cell
+                      key={index}
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Recent users</CardTitle>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/admin/users">View all</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <DataTableSkeleton rows={5} cols={4} />
+          ) : userList.length === 0 ? (
+            <EmptyState
+              icon={<Users className="size-5" />}
+              title="No users found"
+              description="Add users to start managing the system."
+              action={
+                <Button asChild>
+                  <Link href="/dashboard/admin/users/add">
+                    <UserPlus className="size-4" />
+                    Add new user
+                  </Link>
+                </Button>
+              }
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Phone</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {userList.slice(0, 5).map((user: any) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{user.role}</Badge>
+                    </TableCell>
+                    <TableCell className="tabular-nums">
+                      {user.phone || "—"}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* RECENT USERS */}
-      <div className="bg-white p-6 shadow rounded-lg">
-        <h2 className="text-xl font-semibold mb-4">Recent Users</h2>
-
-        {loading ? (
-          <p className="text-gray-500">Loading users...</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="p-2">Name</th>
-                <th className="p-2">Email</th>
-                <th className="p-2">Role</th>
-                <th className="p-2">Phone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userList.slice(0, 5).map((user: any) => (
-                <tr key={user.id} className="border-b">
-                  <td className="p-2">{user.name}</td>
-                  <td className="p-2">{user.email}</td>
-                  <td className="p-2">{user.role}</td>
-                  <td className="p-2">{user.phone || "—"}</td>
-                </tr>
-              ))}
-
-              {userList.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="p-4 text-center text-gray-500">
-                    No users found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ---------- COMPONENTS ---------- */
-
-function SummaryCard({ icon, title, value }) {
-  return (
-    <div className="bg-white p-6 rounded-lg shadow flex items-center gap-4">
-      <div className="p-3 bg-gray-100 rounded-full">
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm text-gray-500">{title}</p>
-        <p className="text-2xl font-bold">{value}</p>
-      </div>
-    </div>
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

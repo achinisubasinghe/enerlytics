@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert } from "@/components/ui/alert";
-import { useParams } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const units = {
+const units: Record<string, string> = {
   ELECTRICITY: "kWh",
   WATER: "m³",
   GAS: "units",
@@ -22,16 +26,17 @@ export default function AddReadingPage() {
   const [current, setCurrent] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetch(`/api/meter-reader/meters/${meterId}`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.error) {
           setError(data.error);
         } else {
           setMeter(data.meter);
-          setPrevious(data.previousReading); // 0 if none
+          setPrevious(data.previousReading);
         }
         setLoading(false);
       })
@@ -43,9 +48,11 @@ export default function AddReadingPage() {
 
   async function submit() {
     setError("");
+    setSubmitting(true);
 
     if (Number(current) < previous) {
       setError("Current reading cannot be less than previous");
+      setSubmitting(false);
       return;
     }
 
@@ -62,6 +69,7 @@ export default function AddReadingPage() {
 
     if (!res.ok) {
       setError(data.error || "Submission failed");
+      setSubmitting(false);
       return;
     }
 
@@ -69,42 +77,113 @@ export default function AddReadingPage() {
   }
 
   if (loading) {
-    return <p className="p-6">Loading meter...</p>;
+    return (
+      <PageShell className="max-w-lg">
+        <PageHeader title="Add meter reading" />
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </CardContent>
+        </Card>
+      </PageShell>
+    );
   }
 
+  const unitLabel = meter ? units[meter.utility_type] || "units" : "units";
+
   return (
-    <div className="p-6 max-w-lg space-y-4">
-      <h1 className="text-2xl font-bold">Add Meter Reading</h1>
+    <PageShell className="max-w-lg">
+      <PageHeader
+        title="Add meter reading"
+        description={
+          meter
+            ? `Record the current reading for meter ${meter.meter_number}`
+            : "Record the current meter reading"
+        }
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/meter-reader">Back</Link>
+          </Button>
+        }
+      />
 
-      <div>
-        <Label>Meter Number</Label>
-        <Input value={meter.meter_number} disabled />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Reading details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
 
-      <div>
-        <Label>Utility Type</Label>
-        <Input value={meter.utility_type} disabled />
-      </div>
+          {meter ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="meterNumber">Meter number</Label>
+                <Input
+                  id="meterNumber"
+                  value={meter.meter_number}
+                  disabled
+                  className="tabular-nums"
+                />
+              </div>
 
-      <div>
-        <Label>Previous Reading ({units[meter.utility_type]})</Label>
-        <Input value={previous} disabled />
-      </div>
+              <div className="space-y-2">
+                <Label htmlFor="utilityType">Utility type</Label>
+                <Input id="utilityType" value={meter.utility_type} disabled />
+              </div>
 
-      <div>
-        <Label>Current Reading ({units[meter.utility_type]})</Label>
-        <Input
-          type="number"
-          value={current}
-          onChange={(e: any) => setCurrent(e.target.value)}
-        />
-      </div>
+              <div className="space-y-2">
+                <Label htmlFor="previousReading">
+                  Previous reading ({unitLabel})
+                </Label>
+                <Input
+                  id="previousReading"
+                  value={previous}
+                  disabled
+                  className="tabular-nums"
+                />
+              </div>
 
-      {error && <Alert variant="destructive">{error}</Alert>}
+              <div className="space-y-2">
+                <Label htmlFor="currentReading">
+                  Current reading ({unitLabel})
+                </Label>
+                <Input
+                  id="currentReading"
+                  type="number"
+                  value={current}
+                  onChange={(e) => setCurrent(e.target.value)}
+                  className="tabular-nums"
+                />
+              </div>
 
-      <Button className="w-full" onClick={submit}>
-        Submit Reading
-      </Button>
-    </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  className="flex-1"
+                  onClick={submit}
+                  disabled={submitting || current === ""}
+                >
+                  {submitting ? "Submitting..." : "Submit reading"}
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link
+                    href={`/dashboard/meter-reader/readings/history/${meterId}`}
+                  >
+                    View history
+                  </Link>
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

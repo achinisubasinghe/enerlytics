@@ -1,60 +1,85 @@
 "use client";
 
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { useApi } from "@/hooks/use-api";
 import Link from "next/link";
+import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { DataTableSkeleton } from "@/components/layout/DataTableSkeleton";
+import { useApi } from "@/hooks/use-api";
 
 export default function OutstandingBills() {
   const { data: outstanding = [], loading } = useApi("/api/billing/outstanding");
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Outstanding Bills</h1>
+    <PageShell>
+      <PageHeader
+        title="Outstanding bills"
+        description="Bills with remaining balances that need collection."
+      />
 
       {loading ? (
-        <p>Loading outstanding bills...</p>
+        <DataTableSkeleton rows={6} cols={7} />
+      ) : outstanding.length === 0 ? (
+        <EmptyState
+          title="No outstanding bills"
+          description="All bills are fully paid."
+          icon={<AlertCircle className="size-5" />}
+        />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Bill ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Meter</TableHead>
-              <TableHead>Utility</TableHead>
-              <TableHead>Total Amount</TableHead>
-              <TableHead>Outstanding</TableHead>
-              <TableHead>Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {outstanding.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell>#{b.id}</TableCell>
-                <TableCell>{b.customer_name || 'N/A'}</TableCell>
-                <TableCell>{b.meter_number || 'N/A'}</TableCell>
-                <TableCell>{b.utility_type || 'N/A'}</TableCell>
-                <TableCell>Rs. {parseFloat(b.bill_amount || 0).toFixed(2)}</TableCell>
-                <TableCell className="font-bold text-red-600">
-                  Rs. {parseFloat(b.outstanding || 0).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <Link href={`/dashboard/billing/payments/add/${b.id}`}>
-                    <Button size="sm">Record Payment</Button>
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-            {outstanding.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-500">
-                  No outstanding bills
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <Card className="py-0">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Bill ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Meter</TableHead>
+                    <TableHead>Utility</TableHead>
+                    <TableHead>Total amount</TableHead>
+                    <TableHead>Outstanding</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {outstanding.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell className="tabular-nums">#{b.id}</TableCell>
+                      <TableCell>{b.customer_name || "N/A"}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {b.meter_number || "N/A"}
+                      </TableCell>
+                      <TableCell>{b.utility_type || "N/A"}</TableCell>
+                      <TableCell className="tabular-nums">
+                        Rs. {parseFloat(b.bill_amount || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="font-semibold tabular-nums text-destructive">
+                        Rs. {parseFloat(b.outstanding || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/dashboard/billing/payments/add/${b.id}`}>
+                          <Button size="sm">Record payment</Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </PageShell>
   );
 }

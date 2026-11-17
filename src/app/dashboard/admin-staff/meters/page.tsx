@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableHeader,
@@ -10,8 +12,20 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useMemo, useState } from "react";
-import { Search, Cpu } from "lucide-react";
+import { Search, Cpu, Zap } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { DataTableSkeleton } from "@/components/layout/DataTableSkeleton";
+
+function statusVariant(status: string) {
+  const s = (status || "").toLowerCase();
+  if (s === "active") return "success" as const;
+  if (s === "inactive") return "secondary" as const;
+  return "destructive" as const;
+}
 
 export default function MetersPage() {
   const [meters, setMeters] = useState<any[]>([]);
@@ -40,109 +54,109 @@ export default function MetersPage() {
   const unassignedCount = meters.length - assignedCount;
 
   const filteredMeters = useMemo(() => {
-    return meters.filter((m: any) =>
-      m.meter_number?.toLowerCase().includes(search.toLowerCase()) ||
-      m.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      m.utility_type?.toLowerCase().includes(search.toLowerCase())
+    return meters.filter(
+      (m: any) =>
+        m.meter_number?.toLowerCase().includes(search.toLowerCase()) ||
+        m.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+        m.utility_type?.toLowerCase().includes(search.toLowerCase())
     );
   }, [meters, search]);
 
   return (
-    <div className="bg-white shadow border rounded-lg p-6 mt-4 mx-2 space-y-6">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Meters</h1>
-          <p className="text-sm text-gray-500">
-            Total: {meters.length} | Assigned: {assignedCount} | Unassigned: {unassignedCount}
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Link href="/dashboard/admin-staff/meters/add">
-            <Button className="flex gap-2 items-center">
-              <Cpu size={16} />
-              Add Meter
+    <PageShell>
+      <PageHeader
+        title="Meters"
+        description={`Total: ${meters.length} · Assigned: ${assignedCount} · Unassigned: ${unassignedCount}`}
+        actions={
+          <>
+            <Button asChild>
+              <Link href="/dashboard/admin-staff/meters/add">
+                <Cpu className="size-4" />
+                Add meter
+              </Link>
             </Button>
-          </Link>
-
-          <Link href="/dashboard/admin-staff/meters/assign">
-            <Button variant="outline">
-              Assign Meter
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/admin-staff/meters/assign">Assign meter</Link>
             </Button>
-          </Link>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      {/* SEARCH */}
-      <div className="relative w-full md:w-1/3">
-        <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-        <input
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
           type="text"
-          placeholder="Search by meter no, customer or utility..."
+          placeholder="Search by meter no, customer or utility…"
           value={search}
-          onChange={(e: any) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 border rounded focus:outline-none focus:ring"
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
         />
       </div>
 
-      {/* TABLE */}
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gray-100">
-            <TableHead>Meter No</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Utility</TableHead>
-            <TableHead>Unit</TableHead>
-            <TableHead>Customer</TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {loading && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-6">
-                Loading meters...
-              </TableCell>
-            </TableRow>
+      <Card className="py-0">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6">
+              <DataTableSkeleton rows={6} cols={5} />
+            </div>
+          ) : filteredMeters.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No meters found"
+                description={
+                  search
+                    ? "Try a different search term."
+                    : "Add a meter to start assigning utilities."
+                }
+                icon={<Zap className="size-5" />}
+                action={
+                  !search ? (
+                    <Button asChild size="sm">
+                      <Link href="/dashboard/admin-staff/meters/add">
+                        <Cpu className="size-4" />
+                        Add meter
+                      </Link>
+                    </Button>
+                  ) : null
+                }
+              />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Meter no</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Utility</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Customer</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMeters.map((m: any) => (
+                  <TableRow key={m.id}>
+                    <TableCell className="font-medium tabular-nums">
+                      {m.meter_number}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(m.status)}>{m.status}</Badge>
+                    </TableCell>
+                    <TableCell>{m.utility_type}</TableCell>
+                    <TableCell className="tabular-nums">{m.unit}</TableCell>
+                    <TableCell>
+                      {m.customer_name ? (
+                        <span>{m.customer_name}</span>
+                      ) : (
+                        <span className="font-medium text-destructive">Unassigned</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-
-          {!loading && filteredMeters.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-6 text-gray-500">
-                No meters found
-              </TableCell>
-            </TableRow>
-          )}
-
-          {!loading &&
-            filteredMeters.map((m: any) => (
-              <TableRow key={m.id} className="hover:bg-gray-50">
-                <TableCell className="font-medium">{m.meter_number}</TableCell>
-
-                <TableCell>
-                  <span className={`px-2 py-1 text-xs rounded 
-                    ${m.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"}`}>
-                    {m.status}
-                  </span>
-                </TableCell>
-
-                <TableCell>{m.utility_type}</TableCell>
-                <TableCell>{m.unit}</TableCell>
-
-                <TableCell>
-                  {m.customer_name ? (
-                    <span className="text-gray-900">{m.customer_name}</span>
-                  ) : (
-                    <span className="text-red-600 font-medium">Unassigned</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-        </TableBody>
-      </Table>
-    </div>
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }

@@ -10,11 +10,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiCall } from "@/hooks/use-api";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
 
-const UNIT_MAP = {
+const UNIT_MAP: Record<string, string> = {
   ELECTRICITY: "kWh",
   WATER: "m³",
   GAS: "m³",
@@ -26,10 +37,14 @@ export default function AddMeterPage() {
   const [status, setStatus] = useState("ACTIVE");
   const [utilityType, setUtilityType] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
       await apiCall("/api/admin-staff/meters/add", {
@@ -37,63 +52,101 @@ export default function AddMeterPage() {
         body: JSON.stringify({ meterNumber, status, utilityType }),
       });
 
-      alert("Meter added successfully");
-      router.push("/dashboard/admin-staff/meters");
+      setSuccess("Meter added successfully");
+      setTimeout(() => {
+        router.push("/dashboard/admin-staff/meters");
+      }, 800);
     } catch (err: unknown) {
-      alert((err as Error).message || "Failed to add meter");
-    } finally {
+      setError((err as Error).message || "Failed to add meter");
       setLoading(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 max-w-md space-y-4">
-      <h1 className="text-2xl font-bold">Add Meter</h1>
+    <PageShell>
+      <PageHeader
+        title="Add meter"
+        description="Register a new utility meter in the system."
+      />
 
-      <div className="space-y-2">
-        <Label>Meter Number</Label>
-        <Input
-          value={meterNumber}
-          onChange={(e: any) => setMeterNumber(e.target.value)}
-          placeholder="MTR-001"
-          required
-        />
-      </div>
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle>Meter details</CardTitle>
+          <CardDescription>Choose utility type to set the unit automatically.</CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            {error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+            {success ? (
+              <Alert variant="success">
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            ) : null}
 
-      <div className="space-y-2">
-        <Label>Status</Label>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-            <SelectItem value="INACTIVE">INACTIVE</SelectItem>
-            <SelectItem value="DISCONNECTED">DISCONNECTED</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="meterNumber">Meter number</Label>
+              <Input
+                id="meterNumber"
+                value={meterNumber}
+                onChange={(e) => setMeterNumber(e.target.value)}
+                placeholder="MTR-001"
+                required
+                className="tabular-nums"
+              />
+            </div>
 
-      <div className="space-y-2">
-        <Label>Utility Type</Label>
-        <Select value={utilityType} onValueChange={setUtilityType}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select utility type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ELECTRICITY">Electricity (kWh)</SelectItem>
-            <SelectItem value="WATER">Water (m³)</SelectItem>
-            <SelectItem value="GAS">Gas (m³)</SelectItem>
-          </SelectContent>
-        </Select>
-        {utilityType && (
-          <p className="text-sm text-gray-500">Unit: {UNIT_MAP[utilityType]}</p>
-        )}
-      </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="DISCONNECTED">Disconnected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Saving..." : "Save Meter"}
-      </Button>
-    </form>
+            <div className="space-y-2">
+              <Label>Utility type</Label>
+              <Select value={utilityType} onValueChange={setUtilityType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select utility type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ELECTRICITY">Electricity (kWh)</SelectItem>
+                  <SelectItem value="WATER">Water (m³)</SelectItem>
+                  <SelectItem value="GAS">Gas (m³)</SelectItem>
+                </SelectContent>
+              </Select>
+              {utilityType ? (
+                <p className="text-sm text-muted-foreground">
+                  Unit: <span className="tabular-nums">{UNIT_MAP[utilityType]}</span>
+                </p>
+              ) : null}
+            </div>
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? "Saving…" : "Save meter"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </PageShell>
   );
 }

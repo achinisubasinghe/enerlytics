@@ -1,29 +1,53 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Users, Gauge, Banknote, AlertCircle } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StatCard } from "@/components/layout/StatCard";
 
 const stats = [
-  { label: "Total Customers", value: 1240 },
-  { label: "Active Meters", value: 1105 },
-  { label: "Total Revenue", value: "Rs. 12.4M" },
-  { label: "Outstanding Amount", value: "Rs. 1.8M" },
+  {
+    label: "Total customers",
+    value: "1,240",
+    icon: <Users className="size-5" />,
+  },
+  {
+    label: "Active meters",
+    value: "1,105",
+    icon: <Gauge className="size-5" />,
+  },
+  {
+    label: "Total revenue",
+    value: "Rs. 12.4M",
+    icon: <Banknote className="size-5" />,
+  },
+  {
+    label: "Outstanding amount",
+    value: "Rs. 1.8M",
+    icon: <AlertCircle className="size-5" />,
+    valueClassName: "text-destructive",
+  },
 ];
 
 export default function ManagerDashboard() {
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Manager Dashboard</h1>
+    <PageShell>
+      <PageHeader
+        title="Manager dashboard"
+        description="Overview of customers, meters, and revenue."
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {stats.map((s, i) => (
-          <Card key={i}>
-            <CardContent className="p-4">
-              <p className="text-sm text-gray-500">{s.label}</p>
-              <p className="text-2xl font-bold">{s.value}</p>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((s) => (
+          <StatCard
+            key={s.label}
+            title={s.label}
+            value={s.value}
+            icon={s.icon}
+            valueClassName={s.valueClassName}
+          />
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }
