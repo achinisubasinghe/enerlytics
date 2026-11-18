@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786101837903,
+      "tag": "0000_damp_azazel",
+      "breakpoints": true
+    }
+  ]
+}
